@@ -24,6 +24,7 @@ class ChartEditorToolboxHandler
 {
   public static function setToolboxState(state:ChartEditorState, id:String, shown:Bool):Void
   {
+    FlxG.log.add("setToolbox called, value: " + shown);
     if (shown)
     {
       showToolbox(state, id);
