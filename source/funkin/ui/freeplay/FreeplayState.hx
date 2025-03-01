@@ -2022,6 +2022,9 @@ class FreeplayState extends MusicBeatSubState
     }
   }
 
+  var preSongPreviewPause:FlxTimer = new FlxTimer();
+  var preSongPreviewPauseTime:Float = 0.25;
+
   function changeSelection(change:Int = 0):Void
   {
     var prevSelected:Int = curSelected;
@@ -2066,8 +2069,16 @@ class FreeplayState extends MusicBeatSubState
 
     if (grpCapsules.countLiving() > 0 && !prepForNewRank)
     {
-      playCurSongPreview(daSongCapsule);
+      //optimized load with pre pause
+      FlxG.sound.music.stop();
+
+      preSongPreviewPause.cancel();
+
+      preSongPreviewPause.start(preSongPreviewPauseTime, function(_) {
+        playCurSongPreview(daSongCapsule);
+      });
       grpCapsules.members[curSelected].selected = true;
+
     }
   }
 
