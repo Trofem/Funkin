@@ -86,7 +86,7 @@ class AlbumRoll extends FlxSpriteGroup
   /**
    * Load the album data by ID and update the textures.
    */
-  function updateAlbum():Void
+  public function updateAlbum():Void
   {
     if (albumId == null)
     {

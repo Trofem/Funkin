@@ -524,7 +524,7 @@ class FreeplayState extends MusicBeatSubState
       {
         FunkinSound.playOnce(Paths.sound('scrollMenu'), 0.4);
         curSelected = 1;
-        changeSelection();
+        changeSelection(0, true);
       }
     };
 
@@ -616,7 +616,7 @@ class FreeplayState extends MusicBeatSubState
         new FlxTimer().start(1.5 / 24, function(bold) {
           sillyStroke.width = 0;
           sillyStroke.height = 0;
-          changeSelection();
+          changeSelection(0, true);
         });
       });
 
@@ -769,7 +769,7 @@ class FreeplayState extends MusicBeatSubState
     FlxG.console.registerFunction('changeSelection', changeSelection);
 
     rememberSelection();
-    changeSelection();
+    changeSelection(0, true);
     refreshCapsuleDisplays();
   }
 
@@ -836,7 +836,7 @@ class FreeplayState extends MusicBeatSubState
 
     rememberedSongId = fromResults.songId;
     rememberedDifficulty = fromResults.difficultyId;
-    changeSelection();
+    changeSelection(0, true);
     changeDiff();
 
     if (fromResultsParams?.newRank == SHIT)
@@ -1402,12 +1402,12 @@ class FreeplayState extends MusicBeatSubState
 
     if (controls.FREEPLAY_JUMP_TO_TOP && !busy)
     {
-      changeSelection(-curSelected);
+      changeSelection(-curSelected, true);
     }
 
     if (controls.FREEPLAY_JUMP_TO_BOTTOM && !busy)
     {
-      changeSelection(grpCapsules.countLiving() - curSelected - 1);
+      changeSelection(grpCapsules.countLiving() - curSelected - 1, true);
     }
 
     lerpScore = MathUtil.smoothLerp(lerpScore, intendedScore, elapsed, 0.5);
@@ -1839,7 +1839,7 @@ class FreeplayState extends MusicBeatSubState
 
     // Seeing if I can do an animation...
     curSelected = grpCapsules.members.indexOf(targetSong);
-    changeSelection(0); // Trigger an update.
+    changeSelection(); // Trigger an update.
 
     // Act like we hit Confirm on that song.
     capsuleOnConfirmDefault(targetSong);
@@ -2025,8 +2025,10 @@ class FreeplayState extends MusicBeatSubState
   var preSongPreviewPause:FlxTimer = new FlxTimer();
   var preSongPreviewPauseTime:Float = 0.25;
 
-  function changeSelection(change:Int = 0):Void
+  function changeSelection(change:Int = 0, ?instant:Bool = false):Void
   {
+    preSongPreviewPause.cancel();
+    if (instant == null) instant = false;
     var prevSelected:Int = curSelected;
 
     curSelected += change;
@@ -2035,25 +2037,6 @@ class FreeplayState extends MusicBeatSubState
 
     if (curSelected < 0) curSelected = grpCapsules.countLiving() - 1;
     if (curSelected >= grpCapsules.countLiving()) curSelected = 0;
-
-    var daSongCapsule:SongMenuItem = grpCapsules.members[curSelected];
-    if (daSongCapsule.freeplayData != null)
-    {
-      var songScore:Null<SaveScoreData> = Save.instance.getSongScore(daSongCapsule.freeplayData.data.id, currentDifficulty, currentVariation);
-      intendedScore = songScore?.score ?? 0;
-      intendedCompletion = songScore == null ? 0.0 : ((songScore.tallies.sick + songScore.tallies.good) / songScore.tallies.totalNotes);
-      rememberedSongId = daSongCapsule.freeplayData.data.id;
-      changeDiff();
-      daSongCapsule.refreshDisplay();
-    }
-    else
-    {
-      intendedScore = 0;
-      intendedCompletion = 0.0;
-      rememberedSongId = null;
-      rememberedDifficulty = Constants.DEFAULT_DIFFICULTY;
-      albumRoll.albumId = null;
-    }
 
     for (index => capsule in grpCapsules.members)
     {
@@ -2067,19 +2050,43 @@ class FreeplayState extends MusicBeatSubState
       if (index < curSelected) capsule.targetPos.y -= 100; // another 100 for good measure
     }
 
-    if (grpCapsules.countLiving() > 0 && !prepForNewRank)
+    if (albumRoll.albumId != null && !instant)
     {
-      //optimized load with pre pause
-      FlxG.sound.music.stop();
-
-      preSongPreviewPause.cancel();
-
-      preSongPreviewPause.start(preSongPreviewPauseTime, function(_) {
-        playCurSongPreview(daSongCapsule);
-      });
-      grpCapsules.members[curSelected].selected = true;
-
+      // hide most of score/album ui
+      fp.visible = false;
+      albumRoll.albumId = null;
+      albumRoll.updateAlbum();
     }
+    var daSongCapsule:SongMenuItem = grpCapsules.members[curSelected];
+
+    intendedScore = 0;
+    intendedCompletion = 0.0;
+
+    preSongPreviewPause.start(instant ? 0.0 : preSongPreviewPauseTime, function(_) {
+      if (!instant) fp.visible = true;
+      if (daSongCapsule.freeplayData != null)
+      {
+        var songScore:Null<SaveScoreData> = Save.instance.getSongScore(daSongCapsule.freeplayData.data.id, currentDifficulty, currentVariation);
+        intendedScore = songScore?.score ?? 0;
+        intendedCompletion = songScore == null ? 0.0 : ((songScore.tallies.sick + songScore.tallies.good) / songScore.tallies.totalNotes);
+        rememberedSongId = daSongCapsule.freeplayData.data.id;
+
+        changeDiff();
+        daSongCapsule.refreshDisplay();
+      }
+      else
+      {
+        rememberedSongId = null;
+        rememberedDifficulty = Constants.DEFAULT_DIFFICULTY;
+        albumRoll.albumId = null;
+      }
+
+      if (grpCapsules.countLiving() > 0 && !prepForNewRank)
+      {
+        playCurSongPreview(daSongCapsule);
+        grpCapsules.members[curSelected].selected = true;
+      }
+    });
   }
 
   public function playCurSongPreview(?daSongCapsule:SongMenuItem):Void
