@@ -2442,16 +2442,10 @@ class PlayState extends MusicBeatSubState
   function updateScoreText():Void
   {
     // TODO: Add functionality for modules to update the score text.
-    if (isBotPlayMode)
-    {
-      scoreText.text = 'Bot Play Enabled';
-    }
-    else
-    {
-      // TODO: Add an option for this maybe?
-      var commaSeparated:Bool = true;
-      scoreText.text = 'Score: ${FlxStringUtil.formatMoney(songScore, false, commaSeparated)}';
-    }
+
+    // TODO: Add an option for this maybe?
+    var commaSeparated:Bool = true;
+    scoreText.text = 'Score: ${FlxStringUtil.formatMoney(songScore, false, commaSeparated)}';
   }
 
   /**
@@ -2459,14 +2453,7 @@ class PlayState extends MusicBeatSubState
      */
   function updateHealthBar():Void
   {
-    if (isBotPlayMode)
-    {
-      healthLerp = Constants.HEALTH_MAX;
-    }
-    else
-    {
-      healthLerp = FlxMath.lerp(healthLerp, health, 0.15);
-    }
+    healthLerp = FlxMath.lerp(healthLerp, health, 0.15);
   }
 
   /**
@@ -2820,8 +2807,7 @@ class PlayState extends MusicBeatSubState
 
     // Send the note hit event.
     var event:HitNoteScriptEvent = new HitNoteScriptEvent(note, healthChange, score, daRating, isComboBreak,
-      note.scoreable ? Highscore.tallies.combo + 1 : Highscore.tallies.combo, noteDiff,
-      daRating == 'sick');
+      note.scoreable ? Highscore.tallies.combo + 1 : Highscore.tallies.combo, noteDiff, daRating == 'sick');
     dispatchEvent(event);
 
     // Calling event.cancelEvent() skips all the other logic! Neat!
